@@ -34,14 +34,14 @@ The training loop implements several techniques that interact in non-obvious way
 
 STORM uses two complementary QAT mechanisms:
 
-- **Input QAT (IQAT)** — Inputs are fake-quantized to int8 before entering the model. The quantization scale is derived from a dataset-wide percentile (default 99.8th of absolute values), not from per-batch statistics, so it is fixed at export time. An optional scale jitter during training teaches the model to tolerate sensor calibration drift.
-- **Activation QAT** — Forward hooks on every module track running EMA statistics (momentum 0.93) of output ranges. These ranges drive fake quantization of intermediate activations during training. The EMA approach avoids the instability of per-batch min/max while still adapting as the weight distribution shifts during learning.
+- **Input QAT (IQAT)** — Inputs are fake-quantized to int8 before entering the model. The quantization scale is derived from a dataset-wide percentile, not from per-batch statistics, so it is fixed at export time. An optional scale jitter during training teaches the model to tolerate sensor calibration drift.
+- **Activation QAT** — Forward hooks on every module track running EMA statistics of output ranges. These ranges drive fake quantization of intermediate activations during training. The EMA approach avoids the instability of per-batch min/max while still adapting as the weight distribution shifts during learning.
 
 Both mechanisms use STE: the forward pass sees quantized values, but gradients flow through the rounding operation as if it were the identity.
 
 ### Sharpness-Aware Minimization (SAM)
 
-SAM perturbs weights in the direction of steepest loss ascent before computing the actual gradient, steering optimization toward flatter minima. This is particularly important for quantized models: sharp minima are more likely to shift significantly when weights are rounded to int8, whereas flat minima are robust to small perturbations. The perturbation radius (`rho`, default 0.05) controls the trade-off.
+SAM perturbs weights in the direction of steepest loss ascent before computing the actual gradient, steering optimization toward flatter minima. This is particularly important for quantized models: sharp minima are more likely to shift significantly when weights are rounded to int8, whereas flat minima are robust to small perturbations. The perturbation radius controls the trade-off.
 
 ### Deployment simulation scheduling
 
@@ -60,7 +60,7 @@ An optional second training phase uses the model's own soft predictions as teach
 The export pipeline (`utils/export.py`) converts a trained checkpoint into a single C header file containing all weights, biases, scales, and lookup tables.
 
 - **Per-output-channel weight quantization** — Each output channel of every linear/conv layer gets its own int8 scale, maximizing dynamic range utilization. Biases are quantized to int32 to match the accumulator precision.
-- **Mult-shift requantization** — To convert int32 accumulator results back to int8 without floating-point division, each channel's real-valued scale factor is decomposed into an integer multiplier M and a right-shift R such that `(x * M) >> R ≈ x * scale`. This is the standard ARM CMSIS-NN approach.
+- **Mult-shift requantization** — To convert int32 accumulator results back to int8 without floating-point division, each channel's real-valued scale factor is decomposed into an integer multiplier M and a right-shift R such that `(x * M) >> R ≈ x * scale`.
 - **Activation function LUTs** — GELU and sigmoid are precomputed as int8→int16 tables. Index computation uses integer affine mapping (`idx = (q * alpha + beta) >> rshift`) to avoid floating-point addressing.
 - **Preprocessing coefficients** — Input standardization (mean/std from training data) is folded into quantized bias terms, so the C code receives raw int16 sensor readings and produces int8 model inputs with a single multiply-add per channel.
 
