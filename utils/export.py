@@ -516,9 +516,6 @@ def main() -> None:
 
     model = TinyTransformerHAR(cfg)
     # ---- choose which weights to export ----
-    # Newer training pipeline may store:
-    # - state_dict: deploy weights (EMA if enabled)
-    # - state_dict_raw: raw (non-EMA) weights
     state_dict = ckpt.get("state_dict", None) if isinstance(ckpt, dict) else None
     state_dict_raw = ckpt.get("state_dict_raw", None) if isinstance(ckpt, dict) else None
     if state_dict is None:

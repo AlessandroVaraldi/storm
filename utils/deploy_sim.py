@@ -167,7 +167,7 @@ def _parse_int16_lut_from_header(header_path: Path, *, array_name: str) -> torch
 
 def get_lut(array_name: str, *, device: torch.device) -> torch.Tensor:
     # LUT headers live in the luts/ folder next to this script.
-    luts_dir = Path(__file__).resolve().parent.parent / "deployment" / "luts"
+    luts_dir = Path(__file__).resolve().parent.parent / "app" / "luts"
     if array_name == "lut_gelu":
         header = luts_dir / "lut_gelu.h"
     elif array_name == "lut_sigmoid":

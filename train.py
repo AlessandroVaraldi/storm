@@ -11,8 +11,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, Dataset
 from torch.utils.data.sampler import WeightedRandomSampler
 
-from storm import TinyTransformerHAR, TinyTransformerHARConfig
-from utils.lstm_cnn_models import BASELINE_REGISTRY, build_baseline
+from storm import STORM, STORMConfig
 from torch_ema import ExponentialMovingAverage
 
 from utils.deploy_sim import DeploySimOps, replace_linear_conv_with_quant, set_weight_quant_enabled
@@ -762,7 +761,7 @@ def main() -> None:
     ap.add_argument("--max-val", type=int, default=0, help="cap val samples (0=all)")
 
     # ── model architecture ──
-    ap.add_argument("--model", type=str, default="storm", choices=["storm"] + list(BASELINE_REGISTRY.keys()), help="model architecture (default: storm)")
+    ap.add_argument("--model", type=str, default="storm", choices=["storm"], help="model architecture (default: storm)")
     ap.add_argument("--in-ch", type=int, default=6, help="input channels")
     ap.add_argument("--d-model", type=int, default=32, help="embedding dim")
     ap.add_argument("--nhead", type=int, default=2, help="attention heads")
@@ -940,7 +939,7 @@ def main() -> None:
         cfg = model.cfg
         print(f"model: {args.model} baseline ({sum(p.numel() for p in model.parameters()):,d} params)")
     else:
-        cfg = TinyTransformerHARConfig(
+        cfg = STORMConfig(
             in_ch=args.in_ch,
             d_model=args.d_model,
             nhead=args.nhead,
@@ -953,7 +952,7 @@ def main() -> None:
             drop_path_rate=float(args.drop_path),
             feat_dropout=float(args.feat_dropout),
         )
-        model = TinyTransformerHAR(cfg).to(args.device)
+        model = STORM(cfg).to(args.device)
         if args.int_ln:
             print(f"int-ln: enabled (lut_size={args.int_ln_lut_size})")
         if cfg.drop_path_rate > 0:

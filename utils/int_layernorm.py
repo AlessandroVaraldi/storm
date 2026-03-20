@@ -203,7 +203,7 @@ class IntegerLayerNorm(nn.Module):
         # Integer inner loop (vectorised over channels)
         centered = K_q14 * x_q - Km_q14                          # Q14, int64
         val = gamma_q14 * centered + (beta_q14 << _FRAC)         # Q28, int64
-        y_raw = (val + _ROUND) >> _TOTAL                          # Q0
+        y_raw = (val + _ROUND) >> _TOTAL                         # Q0
 
         # Saturate to int8
         y_raw = y_raw.clamp(-128, 127)
